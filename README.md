@@ -1,5 +1,9 @@
-# ESP8266_BoilerPlate
-Boiler Plate code for my ESP8266 projects. Includes everything I need to to make a WiFi and MQTT connection.
+# ESP8266_TV_stand
+
+Hacking the remote control of iiglo motorisert TV-stativ TVL1002
+
+Project info:
+https://www.hjemmeautomasjon.no/forums/topic/7285-automatisert-motorisert-tv-stativ-via-mqtt/
 
 Copy config and fill out variables
 ```
