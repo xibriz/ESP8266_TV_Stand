@@ -13,54 +13,37 @@ PubSubClient client(espClient);
 
 /**
  * Publish new firmwares like this:
- * mosquitto_pub -t 'esp/boilerPlate/fw/update' -m 'http://localhost/new_firmware.bin'
+ * mosquitto_pub -t 'esp/tvstand/fw/update' -m 'http://localhost/new_firmware.bin'
  */
 const String mqtt_topic_base = "esp/tvstand";
 const String mqtt_topic_fota = "fw/update";
 const String mqtt_topic_fw_version = "fw/version";
 const String mqtt_topic_fw_info = "fw/info";
-const String FW_VERSION = "1001";
+const String FW_VERSION = "1010";
 
-const String mqtt_topic_up = "up";
-const String mqtt_topic_down = "down";
+const String mqtt_topic_control = "control";
 
-// NB Using pins that are high on boot
 const int8 pin_up = 4; // D2
 const int8 pin_down = 5; // D1
 
-const char* msg_ok = "1";
-
-// float lastPublishTime = 0;
-// const float publishInterval = 5000; //Publish to MQTT every 5 seconds
+const char* msg_up = "ON";
+const char* msg_down = "OFF";
 
 void setup() {
   setupWiFi();
   setupMqtt();
 
-  pinMode(pin_up, OUTPUT);      // set pin to input
-  digitalWrite(pin_up, LOW);   // turn on pullup resistors
+  pinMode(pin_up, OUTPUT);      // set pin to output
+  digitalWrite(pin_up, LOW);
 
-  pinMode(pin_down, OUTPUT);    // set pin to input
-  digitalWrite(pin_down, LOW); // turn on pullup resistors
+  pinMode(pin_down, OUTPUT);    // set pin to output
+  digitalWrite(pin_down, LOW);
 
-  Serial.begin (115200);
   delay(10);
 }
 
 void loop() {
   loopMqtt();
-  
-  // // Publish to MQTT every X seconds
-  // if(millis() - lastPublishTime >= publishInterval) {
-  //   lastPublishTime = millis();
-  //   // Publish some values
-  //   client.publish(createTopic("hello").c_str(), ((String)"Hello MQTT").c_str());
-  // }
-  
-  // /**
-  //  * INSERT YOUR LOGIC HERE
-  //  */
-  // Serial.println("INSERT YOUR LOGIC HERE");
   delay(10);
 }
 
@@ -103,24 +86,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
     checkForUpdates(msg);
   }
 
-  // If we recieve anything on the up topic
-  if (strcmp(topic, createTopic(mqtt_topic_up).c_str()) == 0) {
+  // If we recieve anything on the control topic
+  if (strcmp(topic, createTopic(mqtt_topic_control).c_str()) == 0) {
     for (int i = 0; i < length; i++) {
       msg.concat( (char)payload[i] );
     }
-    // Bring the TV up
-    up(msg);
-  }
 
-  // If we recieve anything on the up topic
-  if (strcmp(topic, createTopic(mqtt_topic_down).c_str()) == 0) {
-    for (int i = 0; i < length; i++) {
-      msg.concat( (char)payload[i] );
+    // Bring the TV up
+    if (strcmp(msg.c_str(), msg_up) == 0) {
+      control(pin_up);
     }
-    // Bring the TV down
-    down(msg);
+
+    // Bring the TV up
+    if (strcmp(msg.c_str(), msg_down) == 0) {
+      control(pin_down);
+    }
   }
-  Serial.println(msg);
 }
 
 /**
@@ -150,8 +131,7 @@ void reconnectMqtt() {
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
       client.subscribe(createTopic(mqtt_topic_fota).c_str()); // Subscribe on FW updates
-      client.subscribe(createTopic(mqtt_topic_up).c_str()); // Subscribe
-      client.subscribe(createTopic(mqtt_topic_down).c_str()); // Subscribe
+      client.subscribe(createTopic(mqtt_topic_control).c_str()); // Subscribe
       // Publish FW version on boot
       client.publish(createTopic(mqtt_topic_fw_version).c_str(), FW_VERSION.c_str());
     }
@@ -192,22 +172,8 @@ String createTopic(String topic) {
   return (mqtt_topic_base+((String)"/"+topic));
 }
 
-void up(String msg) {
-  Serial.println("UP");
-  if (strcmp(msg.c_str(), msg_ok) == 0) {
-    Serial.println("UP OK");
-    digitalWrite(pin_up, HIGH);
-    delay(1000);
-    digitalWrite(pin_up, LOW);
-  }
-}
-
-void down(String msg) {
-  Serial.println("DOWN");
-  if (strcmp(msg.c_str(), msg_ok) == 0) {
-    Serial.println("DOWN OK");
-    digitalWrite(pin_down, HIGH);
-    delay(1000);
-    digitalWrite(pin_down, LOW);
-  }
+void control(int8 pin) {
+  digitalWrite(pin, HIGH);
+  delay(1000);
+  digitalWrite(pin, LOW);
 }
